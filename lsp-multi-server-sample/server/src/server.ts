@@ -4,7 +4,7 @@
 'use strict';
 
 import {
-	createConnection, TextDocuments, ProposedFeatures, TextDocumentSyncKind
+	createConnection, TextDocuments, ProposedFeatures, TextDocumentSyncKind, Position, WorkspaceChange
 } from 'vscode-languageserver';
 
 // Creates the LSP connection
@@ -29,8 +29,31 @@ connection.onInitialize((params) => {
 			textDocumentSync: {
 				openClose: true,
 				change: TextDocumentSyncKind.None
+			},
+			codeActionProvider: true,
+			executeCommandProvider: {
+				commands: [
+					'lsp-mulit-server-sample.insertWorkspaceFolder'
+				]
 			}
 		}
 	}
 });
+
+connection.onExecuteCommand((params) => {
+	if (params.command === 'lsp-mulit-server-sample.insertWorkspaceFolder') {
+		const [uri, line] = params.arguments
+		const workspaceChange = new WorkspaceChange()
+
+		workspaceChange.getTextEditChange(uri).insert(Position.create(line, 0), `${workspaceFolder}\n`);
+		connection.workspace.applyEdit(workspaceChange.edit);
+	}
+})
+connection.onCodeAction((params) => {
+	return [{
+		title: 'Insert workspace folder name',
+		command: 'lsp-mulit-server-sample.insertWorkspaceFolder',
+		arguments: [params.textDocument.uri, params.range.start.line]
+	}]
+})
 connection.listen();
